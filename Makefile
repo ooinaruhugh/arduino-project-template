@@ -1,3 +1,18 @@
+SUFFIXES = .ino
+
+##### This is for you to set
+
+PROJECT_NAME = sketch
+
+# LOCK_BITS=
+# EFUSE=
+# HFUSE=
+# LFUSE=
+
+SRCS = # insert source file here
+OBJS = $(addsuffix .o,$(basename $(SRCS)))
+
+##### Here comes all the setup
 # Toolchain
 CC=avr-gcc
 CXX=avr-g++
@@ -10,7 +25,7 @@ AVRDUDE=avrdude
 TARGET=$(error Please set the TARGET flag)
 
 include platform.mk
-include programmer.mk
+include programmers.mk
 
 MCU=$(MCU_$(TARGET))
 F_CPU=$(F_CPU_$(TARGET))
@@ -50,7 +65,7 @@ override CXXFLAGS := -g -Os -std=c++17 \
 override CPPFLAGS := \
 	-mmcu=$(MCU) \
 	-DF_CPU=$(F_CPU) \
-	-Iinclude
+	-Iinclude \
 	$(CPPFLAGS)
 
 AVRDUDE_FLAGS=-p $(AVRDUDE_PART) -P $(PORT) -c $(PROTOCOL) -b $(RATE)
@@ -79,18 +94,7 @@ ifeq ($(WITH_ARDUINO_CORE),1)
 override LDLIBS += -lcore-$(TARGET)
 endif
 
-SUFFIXES = .ino
-
-PROJECT_NAME = sketch
-
-# LOCK_BITS=
-# EFUSE=
-# HFUSE=
-# LFUSE=
-
-SRCS = src/blink.ino # insert source file here
-OBJS = $(addsuffix .o,$(basename $(SRCS)))
-
+$(PROJECT_NAME).elf: override CPPFLAGS+=-DPROJECT_NAME=$(PROJECT_NAME)
 $(PROJECT_NAME).elf: $(OBJS)
 	$(CC) $(LDFLAGS) -o $@ $< $(LOADLIBES) $(LDLIBS)
 
