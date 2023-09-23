@@ -9,7 +9,7 @@ PROJECT_NAME = sketch
 # HFUSE=
 # LFUSE=
 
-SRCS = src/blink.ino # insert source file here
+SRCS = # insert source file here
 OBJS = $(addsuffix .o,$(basename $(SRCS)))
 
 ##### Here comes all the setup
@@ -24,8 +24,8 @@ AVRDUDE=avrdude
 
 # TARGET?=$(error Please set the TARGET flag)
 
-include platform.mk
-include programmers.mk
+include scripts/platform.mk
+include scripts/programmers.mk
 
 MCU=$(MCU_$(TARGET))
 F_CPU=$(F_CPU_$(TARGET))
@@ -92,7 +92,7 @@ ifeq ($(WITH_ARDUINO_CORE),1)
 override LDLIBS += -lcore-$(TARGET)
 endif
 
-include locate_arduino_header.mk
+include scripts/locate_arduino_header.mk
 
 all: $(PROJECT_NAME).hex
 
