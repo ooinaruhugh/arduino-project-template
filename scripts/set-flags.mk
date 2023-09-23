@@ -8,7 +8,7 @@ TOOLCHAIN_VERSION=0
 
 AVRDUDE_PART=$(AVRDUDE_PART_$(TARGET))
 # PORT?=$(error You need to specify a port for programming)
-# PROGRAMMER?=$(error You need to specify a programmer)
+PROGRAMMER=$(PROGRAMMER_$(TARGET))
 PROTOCOL=$(PROTOCOL_$(PROGRAMMER))
 RATE=$(RATE_$(PROGRAMMER))
 
@@ -37,7 +37,7 @@ override CPPFLAGS := \
 	-Iinclude \
 	$(CPPFLAGS)
 
-AVRDUDE_FLAGS=-p $(AVRDUDE_PART) -P $(PORT) -c $(PROTOCOL) -b $(RATE)
+AVRDUDE_FLAGS=-p$(AVRDUDE_PART) -c$(PROTOCOL) -P$(PORT) -b$(RATE) -D
 
 ifneq ($(VARIANT),)
 override CPPFLAGS+=-DVARIANT_$(VARIANT)
