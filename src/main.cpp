@@ -1,9 +1,10 @@
 #include <Arduino.h>
 #include "project.h"
 
-int main(void) {
-    init();
-    setup();
-    loop();
-    return 0;
+void setup() {
+
+}
+
+void loop() {
+    
 }
