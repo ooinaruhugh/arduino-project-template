@@ -9,7 +9,8 @@ AVRDUDE=avrdude
 
 TARGET=$(error Please set the TARGET flag)
 
-include Platform.mk
+include platform.mk
+include programmer.mk
 
 MCU=$(MCU_$(TARGET))
 F_CPU=$(F_CPU_$(TARGET))
@@ -20,9 +21,10 @@ EXTRA_FLAGS=$(EXTRA_FLAGS_$(TARGET))
 TOOLCHAIN_VERSION=0
 
 AVRDUDE_PART=$(AVRDUDE_PART_$(TARGET))
-AVRDUDE_PORT= # Hardcode here depending on used programmer
-AVRDUDE_PROTOCOL= # Hardcode here depending on used programmer
-AVRDUDE_RATE= # Hardcode here depending on used programmer
+PORT=$(error You need to specify a port for programming)
+PROGRAMMER=$(error You need to specify a programmer)
+PROTOCOL=$(PROTOCOL_$(PROGRAMMER))
+RATE=$(RATE_$(PROGRAMMER))
 
 override CFLAGS := -g -Os -std=c17 \
 	-ffunction-sections \
@@ -48,7 +50,10 @@ override CXXFLAGS := -g -Os -std=c++17 \
 override CPPFLAGS := \
 	-mmcu=$(MCU) \
 	-DF_CPU=$(F_CPU) \
+	-Iinclude
 	$(CPPFLAGS)
+
+AVRDUDE_FLAGS=-p $(AVRDUDE_PART) -P $(PORT) -c $(PROTOCOL) -b $(RATE)
 
 ifneq ($(VARIANT),)
 override CPPFLAGS+=-DVARIANT_$(VARIANT)
@@ -77,6 +82,12 @@ endif
 SUFFIXES = .ino
 
 PROJECT_NAME = sketch
+
+# LOCK_BITS=
+# EFUSE=
+# HFUSE=
+# LFUSE=
+
 SRCS = src/blink.ino # insert source file here
 OBJS = $(addsuffix .o,$(basename $(SRCS)))
 
@@ -93,10 +104,13 @@ $(PROJECT_NAME).elf: $(OBJS)
 	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -x c++ -c $< -o $@
 
 %.upload: %.hex FORCE
-	$(AVRDUDE) -p $(AVRDUDE_PART) -P $(PORT) -c $(AVRDUDE_PROTOCOL) -b $(AVRDUDE_RATE) -U flash:w:$<
+	$(AVRDUDE) $(AVRDUDE_FLAGS) -U flash:w:$<
+
+# fuses.upload:
+# 	$(AVRDUDE) $(AVRDUDE_FLAGS) -e -Ulock:w:$(LOCK_BITS):m -Uefuse:w:$(EFUSE):m -Uhfuse:w:$(HFUSE):m -Ulfuse:w:$(LFUSE):m
 
 clean: 
 	$(RM) $(OBJS)
 	
 FORCE:
-.PHONY: depend clean
+.PHONY: depend clean fuses.upload
