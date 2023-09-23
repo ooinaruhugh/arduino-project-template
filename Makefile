@@ -9,7 +9,7 @@ PROJECT_NAME = sketch
 # HFUSE=
 # LFUSE=
 
-SRCS = # insert source file here
+SRCS = src/blink.ino # insert source file here
 OBJS = $(addsuffix .o,$(basename $(SRCS)))
 
 ##### Here comes all the setup
@@ -22,7 +22,7 @@ AR=avr-gcc-ar
 OBJCOPY=avr-objcopy
 AVRDUDE=avrdude
 
-TARGET=$(error Please set the TARGET flag)
+# TARGET?=$(error Please set the TARGET flag)
 
 include platform.mk
 include programmers.mk
@@ -36,15 +36,14 @@ EXTRA_FLAGS=$(EXTRA_FLAGS_$(TARGET))
 TOOLCHAIN_VERSION=0
 
 AVRDUDE_PART=$(AVRDUDE_PART_$(TARGET))
-PORT=$(error You need to specify a port for programming)
-PROGRAMMER=$(error You need to specify a programmer)
+# PORT?=$(error You need to specify a port for programming)
+# PROGRAMMER?=$(error You need to specify a programmer)
 PROTOCOL=$(PROTOCOL_$(PROGRAMMER))
 RATE=$(RATE_$(PROGRAMMER))
 
 override CFLAGS := -g -Os -std=c17 \
 	-ffunction-sections \
     -fdata-sections \
-    -MMD \
     -flto \
     -fno-fat-lto-objects \
 	$(EXTRA_FLAGS) \
@@ -57,7 +56,6 @@ override CXXFLAGS := -g -Os -std=c++17 \
     -fdata-sections \
     -fno-threadsafe-statics \
     -Wno-error=narrowing \
-    -MMD \
     -flto \
 	$(EXTRA_FLAGS) \
 	$(CXXFLAGS)
@@ -94,27 +92,34 @@ ifeq ($(WITH_ARDUINO_CORE),1)
 override LDLIBS += -lcore-$(TARGET)
 endif
 
+include locate_arduino_header.mk
+
+all: $(PROJECT_NAME).hex
+
 $(PROJECT_NAME).elf: override CPPFLAGS+=-DPROJECT_NAME=$(PROJECT_NAME)
-$(PROJECT_NAME).elf: $(OBJS)
+$(PROJECT_NAME).elf: $(OBJS) guard-TARGET
 	$(CC) $(LDFLAGS) -o $@ $< $(LOADLIBES) $(LDLIBS)
 
 %.hex: %.elf
 	$(OBJCOPY) -R .eeprom -O ihex $< $@
 
-%.elf: %.o
+%.elf: %.o guard-TARGET
 	$(CC) $(LDFLAGS) -o $@ $< $(LOADLIBES) $(LDLIBS)
 
-%.o: %.ino
-	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -x c++ -c $< -o $@
+%.o: %.ino guard-TARGET
+	$(CXX) $(CPPFLAGS) $(ARDUINO_HEADER) $(CXXFLAGS) -x c++ -c $< -o $@
 
-%.upload: %.hex FORCE
+%.upload: %.hex guard-PORT guard-PROGRAMMER FORCE
 	$(AVRDUDE) $(AVRDUDE_FLAGS) -U flash:w:$<
 
 # fuses.upload:
 # 	$(AVRDUDE) $(AVRDUDE_FLAGS) -e -Ulock:w:$(LOCK_BITS):m -Uefuse:w:$(EFUSE):m -Uhfuse:w:$(HFUSE):m -Ulfuse:w:$(LFUSE):m
 
+guard-%: FORCE
+	@test -n "${$*}" || (echo "Please set the $* flag"; exit 1)
+
 clean: 
 	$(RM) $(OBJS)
 	
 FORCE:
-.PHONY: depend clean fuses.upload
+.PHONY: all depend clean #fuses.upload
