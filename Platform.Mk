@@ -20,11 +20,18 @@ ARCH_micro=AVR
 AVRDUDE_PART_micro=$(MCU_micro)
 EXTRA_FLAGS_micro=-DUSB_VID=0x2341 -DUSB_PID=0x8037 -DUSB_MANUFACTURER=Unknown "-DUSB_PRODUCT=\"Arduino Micro\""
 
+MCU_nano.atmega328=atmega328p
+F_CPU_nano.atmega328=16000000L
+BOARD_nano.atmega328=AVR_NANO
+VARIANT_nano.atmega328=EIGHTANALOGINPUTS
+ARCH_nano.atmega328=AVR
+AVRDUDE_PART_nano.atmega328=$(MCU_nano.atme)
+
 MCU_attiny13a=attiny13a
 F_CPU_attiny13a=9600000UL
 AVRDUDE_PART_attiny13a=t13
 
-ARDUINO_BOARDS=uno mega2560 micro
+ARDUINO_BOARDS=uno mega2560 micro nano.atmega328
 ifneq ($(filter $(TARGET),$(ARDUINO_BOARDS)),)
 	WITH_ARDUINO_CORE=1
 endif
