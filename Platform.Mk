@@ -23,3 +23,8 @@ EXTRA_FLAGS_micro=-DUSB_VID=0x2341 -DUSB_PID=0x8037 -DUSB_MANUFACTURER=Unknown "
 MCU_attiny13a=attiny13a
 F_CPU_attiny13a=9600000UL
 AVRDUDE_PART_attiny13a=t13
+
+ARDUINO_BOARDS=uno mega2560 micro
+ifneq ($(filter $(TARGET),$(ARDUINO_BOARDS)),)
+	WITH_ARDUINO_CORE=1
+endif

@@ -7,7 +7,7 @@ AR=avr-gcc-ar
 OBJCOPY=avr-objcopy
 AVRDUDE=avrdude
 
-TARGET=
+TARGET=$(error Please set the TARGET flag)
 
 include Platform.mk
 
@@ -25,7 +25,6 @@ AVRDUDE_PROTOCOL= # Hardcode here depending on used programmer
 AVRDUDE_RATE= # Hardcode here depending on used programmer
 
 override CFLAGS := -g -Os -std=c17 \
-	-mmcu=$(MCU) -DF_CPU=$(F_CPU) \
 	-ffunction-sections \
     -fdata-sections \
     -MMD \
@@ -35,7 +34,6 @@ override CFLAGS := -g -Os -std=c17 \
 	$(CFLAGS)
 
 override CXXFLAGS := -g -Os -std=c++17 \
-	-mmcu=$(MCU) -DF_CPU=$(F_CPU) \
 	-fpermissive \
     -fno-exceptions \
     -ffunction-sections \
@@ -50,10 +48,20 @@ override CXXFLAGS := -g -Os -std=c++17 \
 override CPPFLAGS := \
 	-mmcu=$(MCU) \
 	-DF_CPU=$(F_CPU) \
-	-DVARIANT_$(VARIANT) \
-	-DARDUINO=$(TOOLCHAIN_VERSION) \
-	-DARDUINO_$(BOARD) \
-	-DARDUINO_ARCH_$(ARCH)
+	$(CPPFLAGS)
+
+ifneq ($(VARIANT),)
+override CPPFLAGS+=-DVARIANT_$(VARIANT)
+endif
+ifneq ($(TOOLCHAIN_VERSION),)
+override CPPFLAGS+=-DARDUINO=$(TOOLCHAIN_VERSION)
+endif
+ifneq ($(ARCH),)
+override CPPFLAGS+=-DARDUINO_ARCH_$(ARCH)
+endif
+ifneq ($(BOARD),)
+override CPPFLAGS+=-DARDUINO_$(BOARD)
+endif
 
 override LDFLAGS := -Os -g \
 	-flto \
@@ -61,32 +69,34 @@ override LDFLAGS := -Os -g \
 	-Wl,--gc-sections \
 	-mmcu=$(MCU)
 
+override LDLIBS := -lm $(LDLIBS)
+ifeq ($(WITH_ARDUINO_CORE),1)
+override LDLIBS += -lcore-$(TARGET)
+endif
+
 SUFFIXES = .ino
 
+PROJECT_NAME = sketch
 SRCS = src/blink.ino # insert source file here
 OBJS = $(addsuffix .o,$(basename $(SRCS)))
 
-PROJECT_NAME = sketch
-
-test:
-	true $(CPPFLAGS) $(CFLAGS)
-
 $(PROJECT_NAME).elf: $(OBJS)
-	$(CC) -Os -g -flto -fuse-linker-plugin -Wl,--gc-sections -mmcu=@MCU@ $(LDFLAGS) -o $@ $< -lm -lcore-@LIB_CORE@
+	$(CC) $(LDFLAGS) -o $@ $< $(LOADLIBES) $(LDLIBS)
 
 %.hex: %.elf
 	$(OBJCOPY) -R .eeprom -O ihex $< $@
 
 %.elf: %.o
-	$(CC) $(LDFLAGS) -o $@ $< -lm 
+	$(CC) $(LDFLAGS) -o $@ $< $(LOADLIBES) $(LDLIBS)
 
 %.o: %.ino
-	$(CXX) $(AM_CPPFLAGS) $(CPPFLAGS) $(AM_CXXFLAGS) $(CXXFLAGS) -x c++ -c $< -o $@
+	$(CXX) $(CPPFLAGS) $(CXXFLAGS) -x c++ -c $< -o $@
 
-%.upload: %.hex
+%.upload: %.hex FORCE
 	$(AVRDUDE) -p $(AVRDUDE_PART) -P $(PORT) -c $(AVRDUDE_PROTOCOL) -b $(AVRDUDE_RATE) -U flash:w:$<
 
 clean: 
 	$(RM) $(OBJS)
 	
+FORCE:
 .PHONY: depend clean
